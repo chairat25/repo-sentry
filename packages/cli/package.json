@@ -1,0 +1,16 @@
+{
+  "name": "@repo-sentry/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": { "repo-sentry": "./dist/index.js" },
+  "main": "./dist/index.js",
+  "files": ["dist"],
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@repo-sentry/core": "workspace:*"
+  }
+}
