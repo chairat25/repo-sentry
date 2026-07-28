@@ -13,6 +13,10 @@ export interface CheckOptions {
   readonly json?: boolean | undefined;
   readonly noFetch?: boolean | undefined;
   readonly quiet?: boolean | undefined;
+  /** Wording of the block message. Defaults to 'commit'. */
+  readonly stage?: 'commit' | 'push' | undefined;
+  /** Fetch timeout. Hooks pass a short one to stay responsive. */
+  readonly fetchTimeoutMs?: number | undefined;
 }
 
 export interface CheckResult {
@@ -36,7 +40,10 @@ export async function runCheck(opts: CheckOptions = {}): Promise<CheckResult> {
 
   if (repos.length === 0) return { exitCode: 0, output: '' };
 
-  const statuses: RepoStatus[] = await analyzeAll(repos, { fetch: opts.noFetch !== true });
+  const statuses: RepoStatus[] = await analyzeAll(repos, {
+    fetch: opts.noFetch !== true,
+    ...(opts.fetchTimeoutMs !== undefined ? { fetchTimeoutMs: opts.fetchTimeoutMs } : {}),
+  });
   const stale = statuses.filter(isStale);
   const exitCode = stale.length > 0 ? 1 : 0;
 
@@ -50,6 +57,7 @@ export async function runCheck(opts: CheckOptions = {}): Promise<CheckResult> {
     return { exitCode, output: '' };
   }
 
-  const output = stale.map((s) => formatBlockMessage(s, 'commit')).join('\n');
+  const stage = opts.stage ?? 'commit';
+  const output = stale.map((s) => formatBlockMessage(s, stage)).join('\n');
   return { exitCode, output };
 }

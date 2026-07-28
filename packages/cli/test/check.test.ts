@@ -97,6 +97,42 @@ describe('runCheck', () => {
     expect(result.exitCode).toBe(1);
   });
 
+  it('uses push wording when the push stage is requested', async () => {
+    fx = await makeFixture();
+    const mine = await makeClone(fx, 'mine');
+    const theirs = await makeClone(fx, 'theirs');
+    await commitAndPush(theirs, 'a.txt');
+
+    const result = await runCheck({ path: mine, stage: 'push' });
+
+    expect(result.output).toContain('will be rejected');
+    expect(result.output).toContain('git push --no-verify');
+    expect(result.output).not.toContain('before committing');
+  });
+
+  it('defaults to commit wording', async () => {
+    fx = await makeFixture();
+    const mine = await makeClone(fx, 'mine');
+    const theirs = await makeClone(fx, 'theirs');
+    await commitAndPush(theirs, 'a.txt');
+
+    const result = await runCheck({ path: mine });
+
+    expect(result.output).toContain('before committing');
+  });
+
+  it('detects a teammate push on a freshly cloned repo, without relying on cached refs', async () => {
+    fx = await makeFixture();
+    const mine = await makeClone(fx, 'mine');
+    const theirs = await makeClone(fx, 'theirs');
+    // `mine` has never fetched since this push, so only a live fetch can see it.
+    await commitAndPush(theirs, 'a.txt');
+
+    const result = await runCheck({ path: mine, fetchTimeoutMs: 3_000 });
+
+    expect(result.exitCode).toBe(1);
+  });
+
   it('discovers every repo below the path when the path is not itself a repo', async () => {
     fx = await makeFixture();
     await makeClone(fx, 'a');
