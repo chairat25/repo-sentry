@@ -1,7 +1,7 @@
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import type { RepoStatus } from '@repo-sentry/core';
+import type { RepoStatus } from './types.js';
 
 /**
  * The bridge between the terminal and the editor.

@@ -1,6 +1,5 @@
 import { resolve } from 'node:path';
-import { analyzeRepo, isStale, runGit } from '@repo-sentry/core';
-import { blockRepo, unblockRepo } from './marker.js';
+import { analyzeRepo, blockRepo, isStale, runGit, unblockRepo } from '@repo-sentry/core';
 import { pluralCommits } from './format.js';
 
 /** Boot-time fetch budget. Booting is already slow; a few seconds is affordable. */

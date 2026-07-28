@@ -1,9 +1,23 @@
+import { watch, type FSWatcher } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import * as vscode from 'vscode';
-import { Scheduler, discoverRepos, isStale, runGit, type RepoStatus } from '@repo-sentry/core';
+import {
+  Scheduler,
+  analyzeRepo,
+  discoverRepos,
+  isStale,
+  markerDir,
+  readBlocked,
+  runGit,
+  unblockRepo,
+  type BlockedRepo,
+  type RepoStatus,
+} from '@repo-sentry/core';
 import { renderBar } from './status-bar.js';
 import { TransitionTracker } from './notifier.js';
 import { renderNotification } from './messages.js';
-import { pullAll } from './pull.js';
+import { pullAll, pullFastForward } from './pull.js';
+import { BootBlockTracker, renderBootBlockMessage } from './boot-block.js';
 
 const PULL_NOW = 'Pull now';
 const SNOOZE = 'Snooze 30m';
@@ -16,6 +30,9 @@ const tracker = new TransitionTracker();
 let latest: RepoStatus[] | null = null;
 /** Set when `notifyOnOpen` is false, so the opening batch seeds silently. */
 let suppressFirstBatch = false;
+
+const bootBlocks = new BootBlockTracker();
+let markerWatcher: FSWatcher | null = null;
 
 export function activate(context: vscode.ExtensionContext): void {
   output = vscode.window.createOutputChannel('repo-sentry');
@@ -49,9 +66,86 @@ export function activate(context: vscode.ExtensionContext): void {
       else scheduler?.pause();
     }),
     { dispose: () => scheduler?.stop() },
+    { dispose: () => stopMarkerWatch() },
   );
 
   void startup();
+}
+
+/**
+ * Watches the marker that `repo-sentry guard` writes when it refuses a boot.
+ *
+ * A VS Code FileSystemWatcher only covers workspace files, and the marker
+ * lives in the home directory so a guard run from any terminal reaches it.
+ * That leaves node's fs.watch, on the directory rather than the file, because
+ * the marker is written by rename and a file watch would follow the old inode.
+ */
+function startMarkerWatch(): void {
+  const dir = markerDir();
+  try {
+    mkdirSync(dir, { recursive: true });
+    markerWatcher = watch(dir, () => void onMarkerChanged());
+    markerWatcher.on('error', (err) => output?.appendLine(`marker watch failed: ${String(err)}`));
+  } catch (err) {
+    // No watcher means no modal, but polling and the status bar keep working.
+    output?.appendLine(`could not watch ${dir}: ${String(err)}`);
+  }
+  void onMarkerChanged();
+}
+
+function stopMarkerWatch(): void {
+  markerWatcher?.close();
+  markerWatcher = null;
+}
+
+async function onMarkerChanged(): Promise<void> {
+  const unseen = bootBlocks.pickUnseen(await readBlocked());
+  for (const entry of unseen) {
+    await showBootBlockModal(entry);
+  }
+}
+
+const PULL_AND_RETRY = 'Pull now';
+const OPEN_REPO = 'Show repository';
+
+/**
+ * Modal, not a toast. A boot just failed and the developer is looking at a
+ * terminal; a notification that fades in the corner would be missed, and the
+ * failure it is explaining costs unrecoverable data.
+ */
+async function showBootBlockModal(entry: BlockedRepo): Promise<void> {
+  const choice = await vscode.window.showErrorMessage(
+    renderBootBlockMessage(entry),
+    { modal: true },
+    PULL_AND_RETRY,
+    OPEN_REPO,
+  );
+
+  if (choice === OPEN_REPO) {
+    await showStatus();
+    return;
+  }
+  if (choice !== PULL_AND_RETRY) return;
+
+  const status = await analyzeRepo(entry.path);
+  const outcome = await vscode.window.withProgress(
+    { location: vscode.ProgressLocation.Notification, title: `repo-sentry: pulling ${entry.name}…` },
+    () => pullFastForward(status),
+  );
+
+  if (!outcome.ok) {
+    output?.appendLine(`pull failed for ${entry.name}: ${outcome.error ?? ''}`);
+    void vscode.window.showErrorMessage(
+      `repo-sentry: could not fast-forward ${entry.name}. Resolve manually — see the repo-sentry output channel.`,
+    );
+    return;
+  }
+
+  await unblockRepo(entry.path);
+  await scheduler?.tick();
+  void vscode.window.showInformationMessage(
+    `repo-sentry: ${entry.name} is up to date. Start it again.`,
+  );
 }
 
 /**
@@ -71,6 +165,7 @@ async function startup(): Promise<void> {
   await refreshRepos();
   suppressFirstBatch = !config<boolean>('notifyOnOpen', true);
   scheduler?.start();
+  startMarkerWatch();
 }
 
 async function gitAvailable(): Promise<boolean> {
@@ -85,6 +180,7 @@ async function gitAvailable(): Promise<boolean> {
 export function deactivate(): void {
   scheduler?.stop();
   scheduler = null;
+  stopMarkerWatch();
 }
 
 function config<T>(key: string, fallback: T): T {

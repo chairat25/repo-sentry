@@ -2,9 +2,8 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { runGit } from '@repo-sentry/core';
+import { readBlocked, runGit } from '@repo-sentry/core';
 import { runGuard } from '../src/guard.js';
-import { readBlocked } from '../src/marker.js';
 import {
   commitAndPush,
   commitLocal,

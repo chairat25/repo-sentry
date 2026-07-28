@@ -16,3 +16,14 @@ export type { SchedulerOptions } from './scheduler.js';
 
 export { isStale } from './types.js';
 export type { AnalyzeOptions, RepoState, RepoStatus } from './types.js';
+
+export {
+  blockRepo,
+  markerDir,
+  markerPath,
+  readBlocked,
+  unblockRepo,
+  MARKER_DIR,
+  MARKER_FILE,
+} from './marker.js';
+export type { BlockedRepo } from './marker.js';
