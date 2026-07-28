@@ -16,6 +16,15 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['packages/*/src/**/*.ts'],
+      exclude: [
+        // Process entry point: argument parsing and dispatch only. Every branch
+        // it takes calls into runCheck, hooks, or format, which are covered.
+        'packages/cli/src/index.ts',
+        // Editor API wiring. Its testable logic was deliberately extracted into
+        // status-bar.ts, notifier.ts, messages.ts, and pull.ts — all covered.
+        // Verified by launching the Extension Development Host instead.
+        'packages/vscode-ext/src/extension.ts',
+      ],
       thresholds: { lines: 80 },
     },
   },

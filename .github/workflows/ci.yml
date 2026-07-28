@@ -1,0 +1,37 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 11 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      # Tests create real commits, so git needs an identity.
+      - name: Configure git identity
+        run: |
+          git config --global user.email "ci@example.com"
+          git config --global user.name "ci"
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r build
+      - run: pnpm -r typecheck
+      - run: pnpm vitest run --coverage
+
+      - name: Package the extension
+        run: pnpm --filter repo-sentry package
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: repo-sentry-vsix
+          path: packages/vscode-ext/repo-sentry.vsix
