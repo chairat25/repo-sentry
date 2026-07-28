@@ -26,6 +26,9 @@ importers:
       '@repo-sentry/core':
         specifier: workspace:*
         version: link:../core
+      minimatch:
+        specifier: ^10.0.1
+        version: 10.2.5
 
   packages/core:
     dependencies:
