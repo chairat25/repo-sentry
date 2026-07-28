@@ -3,3 +3,6 @@ packages:
 allowBuilds:
   # esbuild's postinstall fetches its platform-native binary. vitest needs it.
   esbuild: true
+  # Marketplace publishing only — we build a .vsix locally and never publish.
+  '@vscode/vsce-sign': false
+  keytar: false

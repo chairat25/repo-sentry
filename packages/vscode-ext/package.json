@@ -1,0 +1,75 @@
+{
+  "name": "repo-sentry",
+  "displayName": "repo-sentry",
+  "description": "Warns when a git repository is behind its remote, before you commit or push.",
+  "version": "0.1.0",
+  "publisher": "internal",
+  "license": "MIT",
+  "type": "module",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["SCM Providers", "Other"],
+  "main": "./out/extension.cjs",
+  "activationEvents": ["onStartupFinished"],
+  "contributes": {
+    "commands": [
+      { "command": "repoSentry.showStatus", "title": "repo-sentry: Show Repository Status" },
+      { "command": "repoSentry.checkNow", "title": "repo-sentry: Check Now" },
+      { "command": "repoSentry.pullAll", "title": "repo-sentry: Pull All Behind Repositories" },
+      { "command": "repoSentry.snooze", "title": "repo-sentry: Snooze Notifications" },
+      { "command": "repoSentry.installHooks", "title": "repo-sentry: Install Git Hooks" }
+    ],
+    "configuration": {
+      "title": "repo-sentry",
+      "properties": {
+        "repoSentry.pollIntervalSeconds": {
+          "type": "number",
+          "default": 60,
+          "minimum": 10,
+          "description": "How often to check each repository against its remote."
+        },
+        "repoSentry.maxDepth": {
+          "type": "number",
+          "default": 2,
+          "minimum": 0,
+          "description": "How many directory levels below each workspace folder to search for repositories."
+        },
+        "repoSentry.exclude": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Glob patterns of repository paths to ignore."
+        },
+        "repoSentry.notifyOnOpen": {
+          "type": "boolean",
+          "default": true,
+          "description": "Check and notify as soon as the workspace opens."
+        },
+        "repoSentry.snoozeMinutes": {
+          "type": "number",
+          "default": 30,
+          "minimum": 1,
+          "description": "How long the Snooze action suppresses notifications."
+        },
+        "repoSentry.fetchTimeoutMs": {
+          "type": "number",
+          "default": 15000,
+          "minimum": 1000,
+          "description": "Timeout for each git fetch."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "package": "vsce package --no-dependencies -o repo-sentry.vsix",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@repo-sentry/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.2.0",
+    "esbuild": "^0.24.0"
+  }
+}
