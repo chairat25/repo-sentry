@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run repo-sentry",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}",
+        // Disables every *installed* extension so the packaged repo-sentry
+        // cannot run alongside this one and produce two status bar items.
+        // The extension under development still loads.
+        "--disable-extensions",
+        // The workspace the dev host opens: the repos we want it to watch.
+        "/Users/pond/Documents/project/project-genie"
+      ],
+      "outFiles": ["${workspaceFolder}/out/**/*.cjs"],
+      "preLaunchTask": "build repo-sentry"
+    }
+  ]
+}

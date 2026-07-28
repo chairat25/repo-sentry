@@ -1,0 +1,15 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build repo-sentry",
+      "type": "shell",
+      // Builds core first, then bundles the extension. Running only esbuild
+      // would silently use a stale core/dist.
+      "command": "pnpm --filter @repo-sentry/core build && pnpm --filter repo-sentry build",
+      "options": { "cwd": "${workspaceFolder}/../.." },
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
+}
