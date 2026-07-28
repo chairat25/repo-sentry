@@ -14,9 +14,62 @@ service repositories.
 | While you work | Polls every 60s. A teammate's push produces a notification. |
 | Before commit | `pre-commit` hook refuses the commit and tells you to pull. |
 | Before push | `pre-push` hook stops the push before the remote rejects it. |
+| Before boot | `guard` refuses to start a service on a stale checkout, and the editor raises a modal. |
 
 Zero configuration. Open a workspace and every git repository in it — to a depth
 of two directories — is watched.
+
+## The boot guard
+
+Warning about a stale checkout is not enough when the app itself destroys data
+on startup. An ORM configured to sync its schema — TypeORM `synchronize: true`,
+Sequelize `sync({ alter: true })`, and friends — reshapes the database to match
+whatever entities are on disk. Boot on a stale checkout and it drops the column
+a teammate added an hour ago, along with everything written to it.
+
+`repo-sentry guard` refuses that boot.
+
+```bash
+repo-sentry install-guards            # shows what it would change, writes nothing
+repo-sentry install-guards --yes      # applies
+```
+
+It rewrites run scripts to call the guard first:
+
+```json
+"start:dev": "sh -c 'if command -v repo-sentry >/dev/null 2>&1; then repo-sentry guard; fi' && nest start --watch"
+```
+
+That prefix is deliberately plain POSIX `sh`. It behaves identically under npm,
+yarn 1, yarn Berry, pnpm, and bun — `pre`/`post` lifecycle scripts would not,
+since yarn Berry does not run them. And the `if` means a teammate who has not
+installed the CLI boots normally instead of hitting `command not found`.
+
+### Which scripts get guarded
+
+Patterns, not a fixed list, so `nest`, `vite`, `next`, `ng`, and anything else
+are covered without configuration.
+
+| | Default |
+|---|---|
+| Guarded | `start`, `start:*`, `dev`, `dev:*`, `serve`, `serve:*`, `watch`, `watch:*` |
+| Never guarded | anything matching `*prod*`, `*build*`, `*test*`, `*e2e*`, `*lint*`, `*migration*`, `*seed*` |
+
+Override at any level:
+
+```bash
+repo-sentry install-guards --scripts "start:dev,worker"   # exact names
+repo-sentry install-guards --match "task:*" --exclude "*:ci"
+```
+
+Or per repository, in `.repo-sentry.json`:
+
+```json
+{ "guardScripts": ["start:dev", "worker:consume"] }
+```
+
+Undo with `repo-sentry uninstall-guards --yes`. Bypass one run with
+`REPO_SENTRY_SKIP=1 yarn start:dev`.
 
 ## Install
 
@@ -43,8 +96,11 @@ repo-sentry status                 # table of every repository and its state
 repo-sentry check                  # exit 1 if anything is behind
 repo-sentry check --json           # machine-readable output
 repo-sentry check --stage push     # phrase the message for a push
+repo-sentry guard                  # exit 1 if THIS repo is behind (boot guard)
 repo-sentry install-hooks          # write pre-commit and pre-push
 repo-sentry uninstall-hooks        # remove them
+repo-sentry install-guards         # wire the guard into run scripts
+repo-sentry uninstall-guards       # unwire it
 ```
 
 Escape hatches: `git commit --no-verify`, `git push --no-verify`.

@@ -14,6 +14,7 @@ service repositories.
 | While you work | Polls every 60s. A teammate's push produces a notification. |
 | Before commit | `pre-commit` hook refuses the commit and tells you to pull. |
 | Before push | `pre-push` hook stops the push before the remote rejects it. |
+| Before boot | `guard` refuses to start a service on a stale checkout, and a modal explains why. |
 
 Zero configuration. Open a workspace and every git repository in it — to a depth
 of two directories — is watched. The status bar shows the count; clicking it
@@ -27,6 +28,15 @@ repo-sentry install-hooks
 ```
 
 Or run **repo-sentry: Install Git Hooks** from the command palette.
+
+## Boot guard
+
+`repo-sentry install-guards --yes` wires a check into your run scripts so a
+service refuses to start on a stale checkout. When that happens this extension
+raises a modal with a **Pull now** button — booting stale lets a schema-syncing
+ORM drop columns a teammate just added, and that data cannot be recovered.
+
+Bypass one run with `REPO_SENTRY_SKIP=1`.
 
 ## Settings
 
