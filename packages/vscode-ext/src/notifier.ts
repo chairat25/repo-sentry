@@ -7,11 +7,29 @@ import { isStale, type RepoStatus } from '@repo-sentry/core';
  * is announced only when it newly falls behind, or falls further behind than
  * the count already announced.
  */
+export interface TrackerOptions {
+  /**
+   * Re-announce a repo that is still stale this long after the last alert.
+   * Zero disables it: an alert dismissed without pulling is never repeated.
+   */
+  readonly remindAfterMs?: number;
+}
+
+interface Announcement {
+  readonly behind: number;
+  readonly at: number;
+}
+
 export class TransitionTracker {
-  /** repo path -> the behind count most recently announced. */
-  readonly #announced = new Map<string, number>();
+  /** repo path -> what was last announced for it, and when. */
+  readonly #announced = new Map<string, Announcement>();
   /** repo path -> epoch ms until which notifications are suppressed. */
   readonly #snoozedUntil = new Map<string, number>();
+  readonly #remindAfterMs: number;
+
+  constructor(opts: TrackerOptions = {}) {
+    this.#remindAfterMs = opts.remindAfterMs ?? 0;
+  }
 
   pickNotifiable(statuses: readonly RepoStatus[], now: number): RepoStatus[] {
     return statuses.filter((status) => this.#shouldNotify(status, now));
@@ -36,10 +54,22 @@ export class TransitionTracker {
     const until = this.#snoozedUntil.get(status.path);
     if (until !== undefined && now < until) return false;
 
-    const announced = this.#announced.get(status.path);
-    if (announced !== undefined && status.behind <= announced) return false;
+    const last = this.#announced.get(status.path);
+    if (last !== undefined && status.behind <= last.behind && !this.#dueForReminder(last, now)) {
+      return false;
+    }
 
-    this.#announced.set(status.path, status.behind);
+    this.#announced.set(status.path, { behind: status.behind, at: now });
     return true;
+  }
+
+  /**
+   * Dismissing the alert does not make the repo any less stale, so an unheeded
+   * warning is repeated rather than dropped. The clock restarts on each alert,
+   * which keeps this to one reminder per interval instead of one per poll.
+   */
+  #dueForReminder(last: Announcement, now: number): boolean {
+    if (this.#remindAfterMs <= 0) return false;
+    return now - last.at >= this.#remindAfterMs;
   }
 }

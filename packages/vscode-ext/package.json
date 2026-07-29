@@ -39,6 +39,22 @@
           "default": [],
           "description": "Glob patterns of repository paths to ignore."
         },
+        "repoSentry.alertStyle": {
+          "type": "string",
+          "enum": ["modal", "notification"],
+          "enumDescriptions": [
+            "A blocking dialog in the centre of the screen. Cannot be missed.",
+            "A notification in the corner that fades on its own."
+          ],
+          "default": "modal",
+          "description": "How to raise the alert when a repository falls behind."
+        },
+        "repoSentry.remindEveryMinutes": {
+          "type": "number",
+          "default": 15,
+          "minimum": 0,
+          "description": "Re-alert when a repository is still behind this many minutes after the last alert. Set to 0 to alert only once per change."
+        },
         "repoSentry.notifyOnOpen": {
           "type": "boolean",
           "default": true,

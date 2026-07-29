@@ -87,3 +87,52 @@ describe('TransitionTracker', () => {
     expect(tracker.pickNotifiable([behind('a', 2)], NOW)).toHaveLength(1);
   });
 });
+
+describe('TransitionTracker re-nagging', () => {
+  const FIFTEEN_MIN = 15 * 60_000;
+
+  it('nags again once the reminder interval has elapsed', () => {
+    const tracker = new TransitionTracker({ remindAfterMs: FIFTEEN_MIN });
+    tracker.pickNotifiable([behind('a', 2)], NOW);
+
+    expect(tracker.pickNotifiable([behind('a', 2)], NOW + FIFTEEN_MIN + 1)).toHaveLength(1);
+  });
+
+  it('stays quiet before the interval elapses', () => {
+    const tracker = new TransitionTracker({ remindAfterMs: FIFTEEN_MIN });
+    tracker.pickNotifiable([behind('a', 2)], NOW);
+
+    expect(tracker.pickNotifiable([behind('a', 2)], NOW + 60_000)).toHaveLength(0);
+  });
+
+  it('resets the clock each time it nags, rather than nagging every poll after', () => {
+    const tracker = new TransitionTracker({ remindAfterMs: FIFTEEN_MIN });
+    tracker.pickNotifiable([behind('a', 2)], NOW);
+    const second = NOW + FIFTEEN_MIN + 1;
+    tracker.pickNotifiable([behind('a', 2)], second);
+
+    expect(tracker.pickNotifiable([behind('a', 2)], second + 60_000)).toHaveLength(0);
+  });
+
+  it('never nags while snoozed', () => {
+    const tracker = new TransitionTracker({ remindAfterMs: FIFTEEN_MIN });
+    tracker.pickNotifiable([behind('a', 2)], NOW);
+    tracker.snooze(['/x/a'], NOW + 30 * 60_000);
+
+    expect(tracker.pickNotifiable([behind('a', 2)], NOW + FIFTEEN_MIN + 1)).toHaveLength(0);
+  });
+
+  it('does not nag at all when the interval is zero', () => {
+    const tracker = new TransitionTracker({ remindAfterMs: 0 });
+    tracker.pickNotifiable([behind('a', 2)], NOW);
+
+    expect(tracker.pickNotifiable([behind('a', 2)], NOW + 10 * 60 * 60_000)).toHaveLength(0);
+  });
+
+  it('defaults to no nagging', () => {
+    const tracker = new TransitionTracker();
+    tracker.pickNotifiable([behind('a', 2)], NOW);
+
+    expect(tracker.pickNotifiable([behind('a', 2)], NOW + 10 * 60 * 60_000)).toHaveLength(0);
+  });
+});

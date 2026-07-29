@@ -38,10 +38,41 @@ ORM drop columns a teammate just added, and that data cannot be recovered.
 
 Bypass one run with `REPO_SENTRY_SKIP=1`.
 
+## Alerts
+
+When a repository falls behind, a modal takes the centre of the screen:
+
+```
+⛔  PULL FIRST — transaction is 3 commits behind
+
+    transaction (dev)  ↓3
+
+    If you keep working without pulling:
+      •  your next push will be rejected
+      •  starting a service may drop columns a teammate just added,
+         and that data cannot be recovered
+
+              [ Pull now ]  [ Snooze 30m ]  [ Details ]
+```
+
+It is a modal on purpose — a corner toast fades unnoticed, which is how the
+stale-checkout problem survives in the first place. Set
+`repoSentry.alertStyle` to `notification` for the quieter version.
+
+Dismissing it without pulling repeats the alert every 15 minutes, because the
+danger has not gone away. Set `repoSentry.remindEveryMinutes` to `0` to alert
+only once per change.
+
+Alerts fire on transition, not on every poll, and polling pauses while the
+window is unfocused — so a modal never appears over another application, and
+never twice for the same commits.
+
 ## Settings
 
 | Setting | Default | Purpose |
 |---|---|---|
+| `repoSentry.alertStyle` | `modal` | `modal` or `notification` |
+| `repoSentry.remindEveryMinutes` | `15` | Re-alert while still behind. `0` disables |
 | `repoSentry.pollIntervalSeconds` | `60` | How often to check |
 | `repoSentry.maxDepth` | `2` | Directory levels to search for repositories |
 | `repoSentry.exclude` | `[]` | Glob patterns of repository paths to ignore |

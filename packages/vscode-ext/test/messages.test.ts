@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { RepoStatus } from '@repo-sentry/core';
-import { renderNotification } from '../src/messages.js';
+import { renderModalAlert, renderNotification } from '../src/messages.js';
 
 function behind(name: string, count: number): RepoStatus {
   return {
@@ -39,5 +39,59 @@ describe('renderNotification', () => {
 
   it('returns an empty string for an empty list', () => {
     expect(renderNotification([])).toBe('');
+  });
+});
+
+describe('renderModalAlert', () => {
+  it('leads with an unmissable instruction, not a status line', () => {
+    const alert = renderModalAlert([behind('transaction', 3)]);
+
+    expect(alert.message).toContain('PULL FIRST');
+  });
+
+  it('names the repo and count in the headline for a single repo', () => {
+    const alert = renderModalAlert([behind('transaction', 3)]);
+
+    expect(alert.message).toContain('transaction');
+    expect(alert.message).toContain('3 commits behind');
+  });
+
+  it('counts repos in the headline when several are behind', () => {
+    const alert = renderModalAlert([behind('a', 1), behind('b', 2)]);
+
+    expect(alert.message).toContain('2 repos');
+  });
+
+  it('lists every stale repo with its count in the detail', () => {
+    const alert = renderModalAlert([behind('transaction', 3), behind('genie-fe', 8)]);
+
+    expect(alert.detail).toContain('transaction');
+    expect(alert.detail).toContain('↓3');
+    expect(alert.detail).toContain('genie-fe');
+    expect(alert.detail).toContain('↓8');
+  });
+
+  it('spells out both consequences of working on a stale checkout', () => {
+    const alert = renderModalAlert([behind('a', 1)]);
+
+    expect(alert.detail.toLowerCase()).toContain('rejected');
+    expect(alert.detail.toLowerCase()).toContain('column');
+  });
+
+  it('uses the singular form for one commit', () => {
+    expect(renderModalAlert([behind('profile', 1)]).message).toContain('1 commit behind');
+  });
+
+  it('caps the detail list so a dozen stale repos cannot overflow the dialog', () => {
+    const many = Array.from({ length: 12 }, (_, i) => behind(`svc-${i}`, i + 1));
+
+    const alert = renderModalAlert(many);
+
+    expect(alert.detail).toContain('and 4 more');
+    expect(alert.detail).not.toContain('svc-11');
+  });
+
+  it('returns empty strings for an empty list', () => {
+    expect(renderModalAlert([])).toEqual({ message: '', detail: '' });
   });
 });

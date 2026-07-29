@@ -109,6 +109,8 @@ Escape hatches: `git commit --no-verify`, `git push --no-verify`.
 
 | Setting | Default |
 |---|---|
+| `repoSentry.alertStyle` | `modal` |
+| `repoSentry.remindEveryMinutes` | `15` |
 | `repoSentry.pollIntervalSeconds` | `60` |
 | `repoSentry.maxDepth` | `2` |
 | `repoSentry.exclude` | `[]` |

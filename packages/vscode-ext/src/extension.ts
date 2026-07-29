@@ -15,7 +15,7 @@ import {
 } from '@repo-sentry/core';
 import { renderBar } from './status-bar.js';
 import { TransitionTracker } from './notifier.js';
-import { renderNotification } from './messages.js';
+import { renderModalAlert, renderNotification } from './messages.js';
 import { pullAll, pullFastForward } from './pull.js';
 import { BootBlockTracker, renderBootBlockMessage } from './boot-block.js';
 
@@ -26,7 +26,7 @@ const DETAILS = 'Details';
 let scheduler: Scheduler | null = null;
 let bar: vscode.StatusBarItem | null = null;
 let output: vscode.OutputChannel | null = null;
-const tracker = new TransitionTracker();
+let tracker = new TransitionTracker();
 let latest: RepoStatus[] | null = null;
 /** Set when `notifyOnOpen` is false, so the opening batch seeds silently. */
 let suppressFirstBatch = false;
@@ -42,12 +42,7 @@ export function activate(context: vscode.ExtensionContext): void {
   bar.show();
   context.subscriptions.push(bar, output);
 
-  scheduler = new Scheduler({
-    intervalMs: config<number>('pollIntervalSeconds', 60) * 1000,
-    fetchTimeoutMs: config<number>('fetchTimeoutMs', 15_000),
-    onResults,
-    onError: (err) => output?.appendLine(`poll failed: ${String(err)}`),
-  });
+  buildFromConfig();
 
   context.subscriptions.push(
     vscode.commands.registerCommand('repoSentry.checkNow', () => scheduler?.tick()),
@@ -198,8 +193,27 @@ async function refreshRepos(): Promise<void> {
   scheduler?.setRepos(repos);
 }
 
-async function reload(): Promise<void> {
+/**
+ * The scheduler and tracker both capture their settings at construction, so
+ * changing a setting means rebuilding them rather than mutating them.
+ */
+function buildFromConfig(): void {
   scheduler?.stop();
+
+  tracker = new TransitionTracker({
+    remindAfterMs: config<number>('remindEveryMinutes', 15) * 60_000,
+  });
+
+  scheduler = new Scheduler({
+    intervalMs: config<number>('pollIntervalSeconds', 60) * 1000,
+    fetchTimeoutMs: config<number>('fetchTimeoutMs', 15_000),
+    onResults,
+    onError: (err) => output?.appendLine(`poll failed: ${String(err)}`),
+  });
+}
+
+async function reload(): Promise<void> {
+  buildFromConfig();
   await refreshRepos();
   scheduler?.start();
 }
@@ -218,14 +232,44 @@ function onResults(statuses: readonly RepoStatus[]): void {
   }
   if (notifiable.length === 0) return;
 
-  void vscode.window
-    .showWarningMessage(`⚠ ${renderNotification(notifiable)}`, PULL_NOW, SNOOZE, DETAILS)
-    .then((choice) => {
-      if (choice === PULL_NOW) return pullStale();
-      if (choice === SNOOZE) return snoozeAll();
-      if (choice === DETAILS) return showStatus();
-      return undefined;
-    });
+  void alert(notifiable);
+}
+
+/**
+ * Modal by default. A corner toast fades unnoticed, which is how the whole
+ * stale-checkout problem survives — so the default is the one that cannot be
+ * missed, and `alertStyle` exists for anyone who finds that too aggressive.
+ *
+ * Only ever reached from a poll result, and polling is paused while the window
+ * is unfocused, so a modal never appears over another application.
+ */
+async function alert(stale: readonly RepoStatus[]): Promise<void> {
+  if (config<string>('alertStyle', 'modal') === 'notification') {
+    const choice = await vscode.window.showWarningMessage(
+      `⚠ ${renderNotification(stale)}`,
+      PULL_NOW,
+      SNOOZE,
+      DETAILS,
+    );
+    await handleChoice(choice);
+    return;
+  }
+
+  const { message, detail } = renderModalAlert(stale);
+  const choice = await vscode.window.showWarningMessage(
+    message,
+    { modal: true, detail },
+    PULL_NOW,
+    SNOOZE,
+    DETAILS,
+  );
+  await handleChoice(choice);
+}
+
+async function handleChoice(choice: string | undefined): Promise<void> {
+  if (choice === PULL_NOW) return pullStale();
+  if (choice === SNOOZE) return snoozeAll();
+  if (choice === DETAILS) return showStatus();
 }
 
 function paint(statuses: readonly RepoStatus[] | null): void {
