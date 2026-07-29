@@ -1,5 +1,7 @@
 # repo-sentry
 
+**[English](README.md)** | [ภาษาไทย](README.th.md)
+
 Warns you when a git repository is behind its remote — before you commit,
 before you push, before you boot a service, and while you work.
 
