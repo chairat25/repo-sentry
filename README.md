@@ -47,6 +47,62 @@ optional depth — flags, settings, uninstalling, and how it's built.
 
 ---
 
+## Already installed? Check how much coverage you have
+
+There are three independent layers, and it's normal to have only some of
+them. Run these against **your own workspace folder** — the one that holds
+all your service repositories side by side (e.g. `~/projects/my-workspace`,
+whatever you called it):
+
+```bash
+# Is the CLI available at all?
+repo-sentry --help
+
+# What does every repo in the workspace look like right now?
+repo-sentry status --path ~/projects/my-workspace
+```
+
+`status` walks every git repository it finds under that path and prints one
+line each — this is the same table the extension's status bar summarizes:
+
+```text
+✓  auth-service      dev                         
+⚠  billing-service   dev                         ↓3
+✓  web-frontend      dev                         
+⚠  data-pipeline     feature/some-branch         ↓4 ↑5  (diverged)
+```
+
+`✓` is synced, `⚠` is behind (or diverged, which additionally needs a manual
+`rebase`/`merge` before it can push at all — `repo-sentry` won't choose that
+for you).
+
+**Are hooks and the boot guard actually wired in, or just the extension?**
+Both `install-hooks` and `install-guards` are safe to re-run any time —
+without `--yes` they only report, never write:
+
+```bash
+repo-sentry install-guards --path ~/projects/my-workspace
+```
+
+```text
+auth-service/package.json
+  ok     start:dev           (already guarded)
+  skip   start:prod          (excluded by *prod*)
+
+billing-service/package.json
+  guard  start:dev           node server.js
+  skip   build               (excluded by *build*)
+
+Would change 1 script. Nothing was written.
+Re-run with --yes to apply:  repo-sentry install-guards --yes
+```
+
+`ok (already guarded)` means that script is covered. `guard` means it isn't
+yet — re-run with `--yes` to close the gap. If nothing shows `guard`, and
+`repo-sentry status` reports every repo `✓`, you have full coverage.
+
+---
+
 ## What it looks like day to day
 
 - The **status bar** (bottom-left) shows `✓ repos synced` or `⚠ N repos behind`.
@@ -69,7 +125,7 @@ forward silently because it doesn't conflict with anything. Before pulling,
 repo-sentry checks for that and asks:
 
 ```
-⚠  transaction has uncommitted changes
+⚠  billing-service has uncommitted changes
 
      Stash & Pull  —  set your changes aside, then pull. Recover them
                        afterward with "git stash pop".

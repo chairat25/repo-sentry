@@ -47,6 +47,60 @@ repo-sentry install-guards --path /path/to/your/workspace --yes   # แก้จ
 
 ---
 
+## ติดตั้งไปแล้ว? เช็คว่าครอบคลุมแค่ไหนแล้ว
+
+มี 3 ชั้นที่แยกกันเป็นอิสระ และเป็นเรื่องปกติที่จะมีแค่บางชั้น รันคำสั่งพวกนี้
+กับ **โฟลเดอร์ workspace ของคุณเอง** — โฟลเดอร์ที่รวม service repository
+ทุกตัวไว้ข้างๆ กัน (เช่น `~/projects/my-workspace` หรือชื่อที่คุณตั้งไว้):
+
+```bash
+# มี CLI ใช้ได้แล้วหรือยัง?
+repo-sentry --help
+
+# ตอนนี้แต่ละ repo ใน workspace เป็นยังไงบ้าง?
+repo-sentry status --path ~/projects/my-workspace
+```
+
+`status` จะเดินหา git repository ทุกตัวใต้ path นั้น แล้วพิมพ์ทีละบรรทัด —
+เป็นตารางเดียวกับที่ status bar ของ extension สรุปให้เห็น:
+
+```text
+✓  auth-service      dev                         
+⚠  billing-service   dev                         ↓3
+✓  web-frontend      dev                         
+⚠  data-pipeline     feature/some-branch         ↓4 ↑5  (diverged)
+```
+
+`✓` คือ synced แล้ว `⚠` คือตามหลังอยู่ (หรือ diverged ซึ่งต้อง
+`rebase`/`merge` เองก่อนถึงจะ push ได้ — repo-sentry จะไม่เลือกวิธีนั้นแทนคุณ)
+
+**hooks กับ boot guard ต่อสายจริงแล้วหรือยัง หรือมีแค่ extension?**
+ทั้ง `install-hooks` และ `install-guards` รันซ้ำได้ปลอดภัยเสมอ — ถ้าไม่ใส่
+`--yes` มันแค่รายงานให้ดู ไม่เขียนอะไรทั้งนั้น:
+
+```bash
+repo-sentry install-guards --path ~/projects/my-workspace
+```
+
+```text
+auth-service/package.json
+  ok     start:dev           (already guarded)
+  skip   start:prod          (excluded by *prod*)
+
+billing-service/package.json
+  guard  start:dev           node server.js
+  skip   build               (excluded by *build*)
+
+Would change 1 script. Nothing was written.
+Re-run with --yes to apply:  repo-sentry install-guards --yes
+```
+
+`ok (already guarded)` แปลว่า script นั้นครอบคลุมแล้ว `guard` แปลว่ายังไม่ได้
+ทำ — รันซ้ำพร้อม `--yes` เพื่อปิดช่องว่างนั้น ถ้าไม่มีอันไหนขึ้น `guard` เลย
+และ `repo-sentry status` บอกว่าทุก repo เป็น `✓` แปลว่าครอบคลุมเต็มแล้ว
+
+---
+
 ## หน้าตาตอนใช้งานจริง
 
 - **status bar** (มุมล่างซ้าย) ขึ้น `✓ repos synced` หรือ `⚠ N repos behind`
@@ -67,7 +121,7 @@ repo-sentry install-guards --path /path/to/your/workspace --yes   # แก้จ
 ผ่านไปเงียบๆ — ก่อน pull ทุกครั้ง repo-sentry จะเช็คจุดนี้แล้วถามก่อน:
 
 ```
-⚠  transaction has uncommitted changes
+⚠  billing-service has uncommitted changes
 
      Stash & Pull  —  เก็บงานไว้ก่อน แล้วค่อย pull กู้คืนด้วย
                        "git stash pop"
