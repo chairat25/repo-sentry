@@ -5,6 +5,7 @@ import {
   Scheduler,
   analyzeRepo,
   discoverRepos,
+  isDirty,
   isStale,
   markerDir,
   readBlocked,
@@ -15,13 +16,15 @@ import {
 } from '@repo-sentry/core';
 import { renderBar } from './status-bar.js';
 import { TransitionTracker } from './notifier.js';
-import { renderModalAlert, renderNotification } from './messages.js';
-import { pullAll, pullFastForward } from './pull.js';
+import { renderDirtyWarning, renderModalAlert, renderNotification } from './messages.js';
+import { pullAll, pullFastForward, stashAndPull, type PullOutcome } from './pull.js';
 import { BootBlockTracker, renderBootBlockMessage } from './boot-block.js';
 
 const PULL_NOW = 'Pull now';
 const SNOOZE = 'Snooze 30m';
 const DETAILS = 'Details';
+const STASH_AND_PULL = 'Stash & Pull';
+const PULL_ANYWAY = 'Pull Anyway';
 
 let scheduler: Scheduler | null = null;
 let bar: vscode.StatusBarItem | null = null;
@@ -123,10 +126,10 @@ async function showBootBlockModal(entry: BlockedRepo): Promise<void> {
   if (choice !== PULL_AND_RETRY) return;
 
   const status = await analyzeRepo(entry.path);
-  const outcome = await vscode.window.withProgress(
-    { location: vscode.ProgressLocation.Notification, title: `repo-sentry: pulling ${entry.name}…` },
-    () => pullFastForward(status),
-  );
+  const [outcome] = await pullWithDirtyPrompt([status]);
+  // undefined means a dirty-tree prompt was shown and dismissed — leave the
+  // repo blocked rather than guessing what the developer wanted.
+  if (outcome === undefined) return;
 
   if (!outcome.ok) {
     output?.appendLine(`pull failed for ${entry.name}: ${outcome.error ?? ''}`);
@@ -138,8 +141,12 @@ async function showBootBlockModal(entry: BlockedRepo): Promise<void> {
 
   await unblockRepo(entry.path);
   await scheduler?.tick();
+  const stashNote =
+    outcome.stashed === true
+      ? ' Your uncommitted changes were stashed — run "git stash pop" to restore them.'
+      : '';
   void vscode.window.showInformationMessage(
-    `repo-sentry: ${entry.name} is up to date. Start it again.`,
+    `repo-sentry: ${entry.name} is up to date. Start it again.${stashNote}`,
   );
 }
 
@@ -331,11 +338,57 @@ async function pullStale(): Promise<void> {
 async function runPull(targets: readonly RepoStatus[]): Promise<void> {
   if (targets.length === 0) return;
 
-  const outcomes = await vscode.window.withProgress(
-    { location: vscode.ProgressLocation.Notification, title: 'repo-sentry: pulling…' },
-    () => pullAll(targets),
-  );
+  const outcomes = await pullWithDirtyPrompt(targets);
+  reportPullOutcomes(outcomes);
+  await scheduler?.tick();
+}
 
+/**
+ * Pulls every target, asking once — up front, before any progress indicator
+ * — if any of them has uncommitted changes. Repos with nothing at risk are
+ * pulled straight away with no prompt at all.
+ *
+ * `git pull --ff-only` already refuses when an incoming change would
+ * overwrite an uncommitted one; this exists for the quieter case it can't
+ * catch, where the two don't conflict and the pull would otherwise proceed
+ * without a word about what's sitting in the working tree.
+ */
+async function pullWithDirtyPrompt(targets: readonly RepoStatus[]): Promise<PullOutcome[]> {
+  if (targets.length === 0) return [];
+
+  const dirtyFlags = await Promise.all(targets.map((t) => isDirty(t.path).catch(() => false)));
+  const clean = targets.filter((_, i) => !dirtyFlags[i]);
+  const dirty = targets.filter((_, i) => dirtyFlags[i]);
+
+  let stashTargets: readonly RepoStatus[] = [];
+  let forceTargets: readonly RepoStatus[] = [];
+
+  if (dirty.length > 0) {
+    const { message, detail } = renderDirtyWarning(dirty.map((d) => d.name));
+    const choice = await vscode.window.showWarningMessage(
+      message,
+      { modal: true, detail },
+      STASH_AND_PULL,
+      PULL_ANYWAY,
+    );
+    if (choice === STASH_AND_PULL) stashTargets = dirty;
+    else if (choice === PULL_ANYWAY) forceTargets = dirty;
+    // Dismissed: dirty repos are left untouched, clean ones still proceed.
+  }
+
+  return vscode.window.withProgress(
+    { location: vscode.ProgressLocation.Notification, title: 'repo-sentry: pulling…' },
+    async () => {
+      const cleanOutcomes = await pullAll(clean);
+      const forcedOutcomes = await pullAll(forceTargets);
+      const stashedOutcomes: PullOutcome[] = [];
+      for (const target of stashTargets) stashedOutcomes.push(await stashAndPull(target));
+      return [...cleanOutcomes, ...forcedOutcomes, ...stashedOutcomes];
+    },
+  );
+}
+
+function reportPullOutcomes(outcomes: readonly PullOutcome[]): void {
   const failed = outcomes.filter((o) => !o.ok);
   for (const failure of failed) {
     output?.appendLine(`pull failed for ${failure.repo}: ${failure.error ?? ''}`);
@@ -349,7 +402,13 @@ async function runPull(targets: readonly RepoStatus[]): Promise<void> {
     );
   }
 
-  await scheduler?.tick();
+  const stashed = outcomes.filter((o) => o.stashed === true).map((o) => o.repo);
+  if (stashed.length > 0) {
+    void vscode.window.showInformationMessage(
+      `repo-sentry: stashed uncommitted changes in ${stashed.join(', ')} before pulling. ` +
+        'Run "git stash pop" there to restore them.',
+    );
+  }
 }
 
 function snoozeAll(): void {
