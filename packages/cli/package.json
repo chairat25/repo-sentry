@@ -1,6 +1,6 @@
 {
   "name": "@repo-sentry/cli",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "bin": { "repo-sentry": "./dist/index.js" },
   "main": "./dist/index.js",

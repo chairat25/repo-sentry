@@ -2,7 +2,7 @@
   "name": "repo-sentry",
   "displayName": "repo-sentry",
   "description": "Warns when a git repository is behind its remote, before you commit or push.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "internal",
   "icon": "images/icon.png",
   "license": "MIT",
