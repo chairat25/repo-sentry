@@ -112,6 +112,69 @@ describe('analyzeRepo', () => {
     expect(status.branch).toBe('feat/local-only');
   });
 
+  it('reports the tracked remote name, not always "origin"', async () => {
+    fx = await makeFixture();
+    const mine = await makeClone(fx, 'mine');
+    await runGit(mine, ['remote', 'rename', 'origin', 'upstream']);
+    // Re-point the branch's tracking info at the renamed remote.
+    await runGit(mine, ['branch', '--set-upstream-to=upstream/dev', 'dev']);
+    const theirs = await makeClone(fx, 'theirs');
+    await commitAndPush(theirs, 'a.txt');
+
+    const status = await analyzeRepo(mine);
+
+    expect(status.remote).toBe('upstream');
+    expect(status.state).toBe('behind');
+  });
+
+  it('reports remote as null when there is no upstream', async () => {
+    fx = await makeFixture();
+    const repo = await makeClone(fx, 'clone-a');
+    await runGit(repo, ['checkout', '-b', 'feat/local-only']);
+
+    const status = await analyzeRepo(repo);
+
+    expect(status.remote).toBeNull();
+  });
+
+  it('reports remote as null when detached', async () => {
+    fx = await makeFixture();
+    const repo = await makeClone(fx, 'clone-a');
+    const head = await runGit(repo, ['rev-parse', 'HEAD']);
+    await runGit(repo, ['checkout', '--detach', head.stdout]);
+
+    const status = await analyzeRepo(repo);
+
+    expect(status.remote).toBeNull();
+  });
+
+  it('reports the remote even when unreachable', async () => {
+    fx = await makeFixture();
+    const repo = await makeClone(fx, 'clone-a');
+    await runGit(repo, ['remote', 'set-url', 'origin', '/nonexistent/remote.git']);
+
+    const status = await analyzeRepo(repo);
+
+    expect(status.state).toBe('unreachable');
+    expect(status.remote).toBe('origin');
+  });
+
+  it('reports correctly when the local branch name differs from the remote branch it tracks', async () => {
+    fx = await makeFixture();
+    const mine = await makeClone(fx, 'mine');
+    const theirs = await makeClone(fx, 'theirs');
+    // A local branch named anything, tracking origin/dev under a different name —
+    // this is what `git checkout -b <name> --track origin/dev` produces.
+    await runGit(mine, ['checkout', '-b', 'my-local-name', '--track', 'origin/dev']);
+    await commitAndPush(theirs, 'a.txt');
+
+    const status = await analyzeRepo(mine);
+
+    expect(status.state).toBe('behind');
+    expect(status.behind).toBe(1);
+    expect(status.branch).toBe('my-local-name');
+  });
+
   it('reports unreachable and captures stderr when the remote is gone', async () => {
     fx = await makeFixture();
     const repo = await makeClone(fx, 'clone-a');

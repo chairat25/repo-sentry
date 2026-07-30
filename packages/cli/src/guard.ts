@@ -51,7 +51,10 @@ export async function runGuard(opts: GuardOptions = {}): Promise<GuardResult> {
   }
 
   await blockRepo(status, opts.home);
-  return { exitCode: 1, output: formatGuardMessage(status.name, status.branch, status.behind) };
+  return {
+    exitCode: 1,
+    output: formatGuardMessage(status.name, status.remote, status.branch, status.behind),
+  };
 }
 
 /**
@@ -69,10 +72,11 @@ async function findRepoRoot(dir: string): Promise<string | null> {
 
 export function formatGuardMessage(
   name: string,
+  remote: string | null,
   branch: string | null,
   behind: number,
 ): string {
-  const upstream = `origin/${branch ?? 'HEAD'}`;
+  const upstream = `${remote ?? 'origin'}/${branch ?? 'HEAD'}`;
   return [
     '',
     '  ╭──────────────────────────────────────────────────────────────╮',

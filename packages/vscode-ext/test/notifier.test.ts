@@ -9,6 +9,7 @@ function behind(name: string, count: number): RepoStatus {
     path: `/x/${name}`,
     name,
     branch: 'dev',
+    remote: 'origin',
     ahead: 0,
     behind: count,
     state: 'behind',

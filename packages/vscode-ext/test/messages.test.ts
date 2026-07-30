@@ -2,11 +2,12 @@ import { describe, expect, it } from 'vitest';
 import type { RepoStatus } from '@repo-sentry/core';
 import { renderDirtyWarning, renderModalAlert, renderNotification } from '../src/messages.js';
 
-function behind(name: string, count: number): RepoStatus {
+function behind(name: string, count: number, remote: string | null = 'origin'): RepoStatus {
   return {
     path: `/x/${name}`,
     name,
     branch: 'dev',
+    remote,
     ahead: 0,
     behind: count,
     state: 'behind',
@@ -27,6 +28,18 @@ describe('renderNotification', () => {
     );
   });
 
+  it('uses the actual tracked remote name, not always "origin"', () => {
+    expect(renderNotification([behind('service-a', 3, 'upstream')])).toBe(
+      'service-a is 3 commits behind upstream/dev',
+    );
+  });
+
+  it('falls back to "origin" when the remote is unknown', () => {
+    expect(renderNotification([behind('service-a', 3, null)])).toBe(
+      'service-a is 3 commits behind origin/dev',
+    );
+  });
+
   it('aggregates when several repos are behind', () => {
     const message = renderNotification([
       behind('service-a', 3),
@@ -34,7 +47,7 @@ describe('renderNotification', () => {
       behind('service-c', 2),
     ]);
 
-    expect(message).toBe('3 repos behind origin · service-a, service-b, service-c');
+    expect(message).toBe('3 repos behind · service-a, service-b, service-c');
   });
 
   it('returns an empty string for an empty list', () => {

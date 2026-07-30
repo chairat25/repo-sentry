@@ -6,7 +6,7 @@ export function pluralCommits(n: number): string {
 
 /** The message a git hook prints when it refuses to let the operation proceed. */
 export function formatBlockMessage(status: RepoStatus, stage: 'commit' | 'push'): string {
-  const upstream = `origin/${status.branch ?? 'HEAD'}`;
+  const upstream = `${status.remote ?? 'origin'}/${status.branch ?? 'HEAD'}`;
   const header = `✗ repo-sentry: ${status.name} — ${status.branch ?? 'HEAD'} is ${pluralCommits(status.behind)} behind ${upstream}`;
 
   const body =

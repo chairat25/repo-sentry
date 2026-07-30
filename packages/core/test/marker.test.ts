@@ -17,6 +17,7 @@ const entry = (name: string, behind = 3) => ({
   path: `/x/${name}`,
   name,
   branch: 'dev',
+  remote: 'origin',
   ahead: 0,
   behind,
   state: 'behind' as const,

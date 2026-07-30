@@ -17,6 +17,8 @@ export interface BlockedRepo {
   readonly path: string;
   readonly name: string;
   readonly branch: string | null;
+  /** The remote this branch tracks (e.g. "origin"), or null when there is none. */
+  readonly remote: string | null;
   readonly ahead: number;
   readonly behind: number;
   /** ISO-8601 timestamp of the boot attempt that was refused. */
@@ -64,6 +66,7 @@ export async function blockRepo(status: RepoStatus, home: string = homedir()): P
     path: status.path,
     name: status.name,
     branch: status.branch,
+    remote: status.remote,
     ahead: status.ahead,
     behind: status.behind,
     blockedAt: new Date().toISOString(),

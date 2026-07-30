@@ -16,10 +16,12 @@ export function renderNotification(stale: readonly RepoStatus[]): string {
 
   const first = stale[0];
   if (stale.length === 1 && first !== undefined) {
-    return `${first.name} is ${commitsOf(first.behind)} behind origin/${first.branch ?? 'HEAD'}`;
+    const upstream = `${first.remote ?? 'origin'}/${first.branch ?? 'HEAD'}`;
+    return `${first.name} is ${commitsOf(first.behind)} behind ${upstream}`;
   }
 
-  return `${stale.length} repos behind origin · ${stale.map((s) => s.name).join(', ')}`;
+  // Several repos may track different remotes, so no single name fits here.
+  return `${stale.length} repos behind · ${stale.map((s) => s.name).join(', ')}`;
 }
 
 export interface ModalAlert {
@@ -44,7 +46,7 @@ export function renderModalAlert(stale: readonly RepoStatus[]): ModalAlert {
   const subject =
     stale.length === 1 && first !== undefined
       ? `${first.name} is ${commitsOf(first.behind)} behind`
-      : `${stale.length} repos are behind origin`;
+      : `${stale.length} repos are behind`;
 
   const listed = stale
     .slice(0, MAX_LISTED)

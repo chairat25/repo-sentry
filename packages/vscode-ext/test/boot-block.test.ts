@@ -5,7 +5,7 @@ import { BootBlockTracker, renderBootBlockMessage } from '../src/boot-block.js';
 const NOW = 1_700_000_000_000;
 
 function blocked(name: string, behind = 3, at: string = new Date(NOW).toISOString()): BlockedRepo {
-  return { path: `/x/${name}`, name, branch: 'dev', ahead: 0, behind, blockedAt: at };
+  return { path: `/x/${name}`, name, branch: 'dev', remote: 'origin', ahead: 0, behind, blockedAt: at };
 }
 
 describe('renderBootBlockMessage', () => {
@@ -25,6 +25,20 @@ describe('renderBootBlockMessage', () => {
     const message = renderBootBlockMessage(blocked('service-a', 2));
 
     expect(message.toLowerCase()).toContain('column');
+  });
+
+  it('uses the actual tracked remote name, not always "origin"', () => {
+    const entry: BlockedRepo = {
+      path: '/x/service-a',
+      name: 'service-a',
+      branch: 'dev',
+      remote: 'upstream',
+      ahead: 0,
+      behind: 2,
+      blockedAt: new Date(NOW).toISOString(),
+    };
+
+    expect(renderBootBlockMessage(entry)).toContain('upstream/dev');
   });
 });
 

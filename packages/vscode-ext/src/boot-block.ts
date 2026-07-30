@@ -34,8 +34,9 @@ export class BootBlockTracker {
 
 export function renderBootBlockMessage(entry: BlockedRepo): string {
   const commits = entry.behind === 1 ? '1 commit' : `${entry.behind} commits`;
+  const upstream = `${entry.remote ?? 'origin'}/${entry.branch ?? 'HEAD'}`;
   return (
-    `${entry.name} could not start — it is ${commits} behind origin/${entry.branch ?? 'HEAD'}.\n\n` +
+    `${entry.name} could not start — it is ${commits} behind ${upstream}.\n\n` +
     'Starting on a stale checkout lets TypeORM synchronize drop columns your ' +
     'teammates just added. That data cannot be recovered.'
   );

@@ -14,6 +14,12 @@ export interface RepoStatus {
   readonly name: string;
   /** Current branch, or null when HEAD is detached. */
   readonly branch: string | null;
+  /**
+   * The remote this branch tracks (e.g. "origin"), or null when there is no
+   * upstream to have one. Never assume this is "origin" — forks and
+   * non-default setups commonly track a remote with a different name.
+   */
+  readonly remote: string | null;
   readonly ahead: number;
   readonly behind: number;
   readonly state: RepoState;

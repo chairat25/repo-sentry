@@ -27,20 +27,22 @@ export async function analyzeRepo(
   };
 
   const branch = await readBranch(repoPath);
-  if (branch === null) return { ...base, branch: null, state: 'detached' };
+  if (branch === null) return { ...base, branch: null, remote: null, state: 'detached' };
 
   const upstream = await readUpstream(repoPath);
-  if (upstream === null) return { ...base, branch, state: 'no-upstream' };
+  if (upstream === null) return { ...base, branch, remote: null, state: 'no-upstream' };
+
+  const remote = remoteOf(upstream);
 
   if (shouldFetch) {
-    const failure = await tryFetch(repoPath, remoteOf(upstream), branch, fetchTimeoutMs);
+    const failure = await tryFetch(repoPath, remote, remoteBranchOf(upstream), fetchTimeoutMs);
     if (failure !== null) {
-      return { ...base, branch, state: 'unreachable', error: failure };
+      return { ...base, branch, remote, state: 'unreachable', error: failure };
     }
   }
 
   const { ahead, behind } = await countDivergence(repoPath, upstream);
-  return { ...base, branch, ahead, behind, state: deriveState(ahead, behind) };
+  return { ...base, branch, remote, ahead, behind, state: deriveState(ahead, behind) };
 }
 
 export async function analyzeAll(
@@ -100,6 +102,18 @@ async function readUpstream(repoPath: string): Promise<string | null> {
 function remoteOf(upstream: string): string {
   const slash = upstream.indexOf('/');
   return slash === -1 ? 'origin' : upstream.slice(0, slash);
+}
+
+/**
+ * Splits "origin/dev" into the branch name on the remote. This can differ
+ * from the local branch name — `git checkout -b my-name --track origin/dev`
+ * produces exactly that — so fetching the local branch name instead of this
+ * fails with "couldn't find remote ref", misreporting a perfectly reachable
+ * repo as `unreachable`.
+ */
+function remoteBranchOf(upstream: string): string {
+  const slash = upstream.indexOf('/');
+  return slash === -1 ? upstream : upstream.slice(slash + 1);
 }
 
 /** Returns null on success, or the error text on failure. */

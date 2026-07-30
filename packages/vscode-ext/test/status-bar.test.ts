@@ -6,6 +6,7 @@ function status(over: Partial<RepoStatus> & Pick<RepoStatus, 'name' | 'state'>):
   return {
     path: `/x/${over.name}`,
     branch: 'dev',
+    remote: 'origin',
     ahead: 0,
     behind: 0,
     checkedAt: '2026-07-28T00:00:00.000Z',
