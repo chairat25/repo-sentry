@@ -29,6 +29,10 @@ importers:
       minimatch:
         specifier: ^10.0.1
         version: 10.2.5
+    devDependencies:
+      esbuild:
+        specifier: ^0.24.0
+        version: 0.24.2
 
   packages/core:
     dependencies:

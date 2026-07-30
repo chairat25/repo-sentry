@@ -8,10 +8,14 @@
   "engines": { "node": ">=20" },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "bundle": "node esbuild.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@repo-sentry/core": "workspace:*",
     "minimatch": "^10.0.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0"
   }
 }
