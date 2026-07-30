@@ -37,6 +37,7 @@ Zero configuration to start: open a workspace and every git repository in it
 - [3. Optional: git hooks (commit / push protection)](#3-optional-git-hooks-commit--push-protection)
 - [4. Optional: boot guard (data-loss protection)](#4-optional-boot-guard-data-loss-protection)
 - [Daily usage](#daily-usage)
+- [Pulling with uncommitted changes](#pulling-with-uncommitted-changes)
 - [Command reference](#command-reference)
 - [Editor settings](#editor-settings)
 - [Uninstall](#uninstall)
@@ -275,10 +276,51 @@ With just the extension installed, open your workspace and:
 - Dismissing the modal without pulling brings it back every 15 minutes by
   default (`repoSentry.remindEveryMinutes`) — dismissing doesn't make the repo
   any less stale.
+- If a repo you're about to pull has uncommitted changes, a second dialog
+  asks first — see [Pulling with uncommitted changes](#pulling-with-uncommitted-changes)
+  below. A repo with nothing at risk pulls with no prompt at all.
 
 With hooks and the guard installed on top, the same staleness additionally
 stops a `git commit`, a `git push`, or a `yarn start:dev` before it can cause
 damage — see sections 3 and 4 above.
+
+---
+
+## Pulling with uncommitted changes
+
+`git pull --ff-only` is what every "Pull now" button runs, and it already
+refuses on its own — no force, ever — if an incoming change would overwrite
+one of yours. That part needs no extra warning; git protects it for free.
+
+The gap is quieter: if you have an uncommitted change that *doesn't* conflict
+with anything incoming, `--ff-only` will happily carry it forward mixed in
+with the new commits, without a word. Technically safe, but easy to lose
+track of — so before pulling, repo-sentry checks whether the target repo has
+any uncommitted change (`git status --porcelain`) and asks first if it does.
+
+```
+⚠  transaction has uncommitted changes
+
+   Pulling now could carry those changes forward mixed in with new commits.
+
+     Stash & Pull  —  set your changes aside, then pull. Recover them
+                       afterward with "git stash pop".
+     Pull Anyway   —  pull now. git still refuses if anything actually
+                       conflicts — nothing is ever overwritten silently.
+```
+
+- **Stash & Pull** — stashes tracked *and* untracked changes
+  (`git stash push --include-untracked`), then pulls. The stash is **never**
+  popped automatically; run `git stash pop` in that repo once you've confirmed
+  the pull went through.
+- **Pull Anyway** — pulls directly. If something actually conflicts, git
+  refuses the same way it always does — this button does not bypass that.
+- **Dismiss (Esc)** — that repo is left exactly as it was. If you asked to
+  pull several repos and only one was dirty, the rest still pull normally.
+
+A repo with no uncommitted changes never shows this dialog at all — it just
+pulls. This applies everywhere a pull can happen: the stale-repo modal, the
+status quick-pick, **Pull All**, and the boot-guard modal's **Pull now**.
 
 ---
 

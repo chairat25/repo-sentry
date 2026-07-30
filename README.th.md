@@ -37,6 +37,7 @@ repository ข้างในนั้น (ลึกไม่เกิน 2 ช�
 - [3. เสริม: git hooks (ป้องกันตอน commit / push)](#3-เสริม-git-hooks-ป้องกันตอน-commit--push)
 - [4. เสริม: boot guard (ป้องกันข้อมูลหาย)](#4-เสริม-boot-guard-ป้องกันข้อมูลหาย)
 - [ใช้งานประจำวัน](#ใช้งานประจำวัน)
+- [Pull ตอนมีไฟล์แก้ค้างอยู่](#pull-ตอนมีไฟล์แก้ค้างอยู่)
 - [รายการคำสั่งทั้งหมด](#รายการคำสั่งทั้งหมด)
 - [ตั้งค่าใน editor](#ตั้งค่าใน-editor)
 - [ถอนการติดตั้ง](#ถอนการติดตั้ง)
@@ -270,10 +271,52 @@ editor เฝ้าดูอยู่ — ถ้าลง extension ไว้ด
   **Snooze 30m** เลื่อนเตือนชั่วคราว **Details** เปิดดูรายการทั้งหมด
 - ถ้ากดปิด modal โดยไม่ pull จะเด้งเตือนซ้ำทุก 15 นาที (ค่าเริ่มต้น จาก
   `repoSentry.remindEveryMinutes`) — เพราะการกดปิดไม่ได้ทำให้ repo หายตามหลัง
+- ถ้า repo ที่กำลังจะ pull มีไฟล์แก้ค้างอยู่ (uncommitted) จะมี dialog อีก
+  ชั้นถามก่อนเสมอ — ดู [Pull ตอนมีไฟล์แก้ค้างอยู่](#pull-ตอนมีไฟล์แก้ค้างอยู่)
+  ด้านล่าง ส่วน repo ที่ไม่มีอะไรเสี่ยงเลยจะ pull ตรงไปเลยไม่มี prompt
 
 ถ้าลง hooks และ boot guard เพิ่มด้วย ความล้าหลังแบบเดียวกันนี้จะหยุด
 `git commit`, `git push`, หรือ `yarn start:dev` ก่อนที่จะเกิดความเสียหาย
 — ดูหัวข้อ 3 และ 4 ด้านบน
+
+---
+
+## Pull ตอนมีไฟล์แก้ค้างอยู่
+
+`git pull --ff-only` คือคำสั่งที่ปุ่ม "Pull now" ทุกที่รันอยู่แล้ว และมัน
+**ปฏิเสธเองอัตโนมัติ ไม่มี force เด็ดขาด** ถ้ามี commit ที่กำลังจะดึงเข้ามา
+ไปทับไฟล์ที่คุณแก้ค้างอยู่พอดี — จุดนี้ปลอดภัยอยู่แล้วโดย git เอง ไม่ต้องเตือน
+เพิ่ม
+
+ช่องว่างที่เหลือคือกรณีที่ **เงียบกว่านั้น**: ถ้าไฟล์ที่คุณแก้ค้างอยู่ไม่ได้
+ชนกับของที่ดึงเข้ามาเลย `--ff-only` จะปล่อยให้ผ่านไปเฉยๆ โดยไม่บอกอะไรคุณ
+สักคำ ปลอดภัยจริงแต่ก็ลืมง่าย — เพราะงั้นก่อน pull ทุกครั้ง repo-sentry จะเช็ค
+ก่อนว่า repo เป้าหมายมีไฟล์แก้ค้างอยู่มั้ย (`git status --porcelain`) แล้วถ้ามี
+จะถามก่อนเสมอ
+
+```
+⚠  transaction has uncommitted changes
+
+   Pulling now could carry those changes forward mixed in with new commits.
+
+     Stash & Pull  —  set your changes aside, then pull. Recover them
+                       afterward with "git stash pop".
+     Pull Anyway   —  pull now. git still refuses if anything actually
+                       conflicts — nothing is ever overwritten silently.
+```
+
+- **Stash & Pull** — เก็บไฟล์ที่แก้ (ทั้งที่ track อยู่แล้วและไฟล์ใหม่ที่ยัง
+  ไม่ track) ไว้ใน stash ก่อน (`git stash push --include-untracked`) แล้วค่อย
+  pull **ไม่มีการ pop stash คืนให้อัตโนมัติเด็ดขาด** — ต้องรัน
+  `git stash pop` เองใน repo นั้นหลังจากมั่นใจว่า pull สำเร็จแล้ว
+- **Pull Anyway** — pull ตรงๆ เลย ถ้ามีอะไรชนกันจริงๆ git จะปฏิเสธเหมือนเดิม
+  ปุ่มนี้ไม่ได้ข้ามการตรวจสอบนั้นไป
+- **กดปิด (Esc)** — repo นั้นจะไม่ถูกแตะเลย ถ้าสั่ง pull หลาย repo พร้อมกัน
+  แล้วมีแค่ตัวเดียวที่ไฟล์ค้างอยู่ ตัวอื่นที่เหลือก็ยัง pull ตามปกติ
+
+repo ที่ไม่มีไฟล์แก้ค้างอยู่เลยจะไม่เห็น dialog นี้เลย — pull ตรงไปเลย ใช้ได้
+ทุกที่ที่มีการ pull เกิดขึ้น: modal เตือน repo ตามหลัง, quick-pick สถานะ,
+**Pull All**, และปุ่ม **Pull now** ใน modal ของ boot guard
 
 ---
 
