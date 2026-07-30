@@ -27,3 +27,6 @@ export {
   MARKER_FILE,
 } from './marker.js';
 export type { BlockedRepo } from './marker.js';
+
+export { isDirty, stashChanges } from './working-tree.js';
+export type { StashResult } from './working-tree.js';
