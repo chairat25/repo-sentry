@@ -1,6 +1,8 @@
+import { writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { analyzeRepo } from '@repo-sentry/core';
-import { pullAll, pullFastForward } from '../src/pull.js';
+import { analyzeRepo, isDirty, runGit } from '@repo-sentry/core';
+import { pullAll, pullFastForward, stashAndPull } from '../src/pull.js';
 import {
   commitAndPush,
   commitLocal,
@@ -55,6 +57,58 @@ describe('pullFastForward', () => {
     const outcome = await pullFastForward(status);
 
     expect(outcome.ok).toBe(false);
+  });
+});
+
+describe('stashAndPull', () => {
+  it('pulls a clean repo without stashing anything', async () => {
+    fx = await makeFixture();
+    const mine = await makeClone(fx, 'mine');
+    const theirs = await makeClone(fx, 'theirs');
+    await commitAndPush(theirs, 'a.txt');
+
+    const outcome = await stashAndPull(await analyzeRepo(mine));
+
+    expect(outcome.ok).toBe(true);
+    expect(outcome.stashed).toBe(false);
+  });
+
+  it('stashes an uncommitted change, pulls, and leaves the tree clean', async () => {
+    fx = await makeFixture();
+    const mine = await makeClone(fx, 'mine');
+    const theirs = await makeClone(fx, 'theirs');
+    await commitAndPush(theirs, 'a.txt');
+    await writeFile(join(mine, 'scratch.txt'), 'scratch\n');
+
+    const outcome = await stashAndPull(await analyzeRepo(mine, { fetch: false }));
+
+    expect(outcome.ok).toBe(true);
+    expect(outcome.stashed).toBe(true);
+    expect(await isDirty(mine)).toBe(false);
+  });
+
+  it('leaves the stashed change recoverable after a successful pull', async () => {
+    fx = await makeFixture();
+    const mine = await makeClone(fx, 'mine');
+    const theirs = await makeClone(fx, 'theirs');
+    await commitAndPush(theirs, 'a.txt');
+    await writeFile(join(mine, 'scratch.txt'), 'scratch\n');
+
+    await stashAndPull(await analyzeRepo(mine, { fetch: false }));
+    await runGit(mine, ['stash', 'pop']);
+
+    expect(await isDirty(mine)).toBe(true);
+  });
+
+  it('reports a stash failure without attempting to pull', async () => {
+    const notARepo = { path: '/definitely/not/a/repo', name: 'ghost' } as Awaited<
+      ReturnType<typeof analyzeRepo>
+    >;
+
+    const outcome = await stashAndPull(notARepo);
+
+    expect(outcome.ok).toBe(false);
+    expect(outcome.error).toContain('stash failed');
   });
 });
 

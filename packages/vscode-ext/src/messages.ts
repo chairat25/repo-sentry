@@ -64,3 +64,31 @@ export function renderModalAlert(stale: readonly RepoStatus[]): ModalAlert {
     ].join('\n'),
   };
 }
+
+/**
+ * `git pull --ff-only` already refuses on its own when an incoming change
+ * would overwrite an uncommitted one — that safety net doesn't change here.
+ * This is for the quieter case: an uncommitted change that pull *can* carry
+ * forward without conflict, silently. Asking first, rather than letting it
+ * happen unannounced, is the whole point of this dialog.
+ */
+export function renderDirtyWarning(names: readonly string[]): ModalAlert {
+  if (names.length === 0) return { message: '', detail: '' };
+
+  const subject = names.length === 1 ? `${names[0]} has` : `${names.length} repos have`;
+  const listed = names.length > 1 ? names.map((n) => `  ${n}`) : [];
+
+  return {
+    message: `⚠  ${subject} uncommitted changes`,
+    detail: [
+      ...listed,
+      ...(listed.length > 0 ? [''] : []),
+      'Pulling now could carry those changes forward mixed in with new commits.',
+      '',
+      '  Stash & Pull  —  set your changes aside, then pull. Recover them',
+      '                   afterward with "git stash pop".',
+      '  Pull Anyway   —  pull now. git still refuses if anything actually',
+      '                   conflicts — nothing is ever overwritten silently.',
+    ].join('\n'),
+  };
+}

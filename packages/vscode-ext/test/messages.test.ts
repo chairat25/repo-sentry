@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { RepoStatus } from '@repo-sentry/core';
-import { renderModalAlert, renderNotification } from '../src/messages.js';
+import { renderDirtyWarning, renderModalAlert, renderNotification } from '../src/messages.js';
 
 function behind(name: string, count: number): RepoStatus {
   return {
@@ -93,5 +93,38 @@ describe('renderModalAlert', () => {
 
   it('returns empty strings for an empty list', () => {
     expect(renderModalAlert([])).toEqual({ message: '', detail: '' });
+  });
+});
+
+describe('renderDirtyWarning', () => {
+  it('names the single repo with uncommitted changes', () => {
+    const warning = renderDirtyWarning(['service-a']);
+
+    expect(warning.message).toContain('service-a');
+    expect(warning.message.toLowerCase()).toContain('uncommitted');
+  });
+
+  it('counts repos in the headline when several have uncommitted changes', () => {
+    const warning = renderDirtyWarning(['service-a', 'service-b']);
+
+    expect(warning.message).toContain('2 repos');
+  });
+
+  it('lists every named repo in the detail when there is more than one', () => {
+    const warning = renderDirtyWarning(['service-a', 'service-b']);
+
+    expect(warning.detail).toContain('service-a');
+    expect(warning.detail).toContain('service-b');
+  });
+
+  it('explains what stashing does and that git still refuses real conflicts', () => {
+    const warning = renderDirtyWarning(['service-a']);
+
+    expect(warning.detail.toLowerCase()).toContain('stash');
+    expect(warning.detail.toLowerCase()).toContain('conflict');
+  });
+
+  it('returns empty strings for an empty list', () => {
+    expect(renderDirtyWarning([])).toEqual({ message: '', detail: '' });
   });
 });
