@@ -16,25 +16,25 @@ function behind(name: string, count: number): RepoStatus {
 
 describe('renderNotification', () => {
   it('names the branch and count for a single repo', () => {
-    expect(renderNotification([behind('transaction', 3)])).toBe(
-      'transaction is 3 commits behind origin/dev',
+    expect(renderNotification([behind('service-a', 3)])).toBe(
+      'service-a is 3 commits behind origin/dev',
     );
   });
 
   it('uses the singular form for one commit', () => {
-    expect(renderNotification([behind('profile', 1)])).toBe(
-      'profile is 1 commit behind origin/dev',
+    expect(renderNotification([behind('service-b', 1)])).toBe(
+      'service-b is 1 commit behind origin/dev',
     );
   });
 
   it('aggregates when several repos are behind', () => {
     const message = renderNotification([
-      behind('transaction', 3),
-      behind('profile', 1),
-      behind('genie-fe', 2),
+      behind('service-a', 3),
+      behind('service-b', 1),
+      behind('service-c', 2),
     ]);
 
-    expect(message).toBe('3 repos behind origin · transaction, profile, genie-fe');
+    expect(message).toBe('3 repos behind origin · service-a, service-b, service-c');
   });
 
   it('returns an empty string for an empty list', () => {
@@ -44,15 +44,15 @@ describe('renderNotification', () => {
 
 describe('renderModalAlert', () => {
   it('leads with an unmissable instruction, not a status line', () => {
-    const alert = renderModalAlert([behind('transaction', 3)]);
+    const alert = renderModalAlert([behind('service-a', 3)]);
 
     expect(alert.message).toContain('PULL FIRST');
   });
 
   it('names the repo and count in the headline for a single repo', () => {
-    const alert = renderModalAlert([behind('transaction', 3)]);
+    const alert = renderModalAlert([behind('service-a', 3)]);
 
-    expect(alert.message).toContain('transaction');
+    expect(alert.message).toContain('service-a');
     expect(alert.message).toContain('3 commits behind');
   });
 
@@ -63,11 +63,11 @@ describe('renderModalAlert', () => {
   });
 
   it('lists every stale repo with its count in the detail', () => {
-    const alert = renderModalAlert([behind('transaction', 3), behind('genie-fe', 8)]);
+    const alert = renderModalAlert([behind('service-a', 3), behind('service-c', 8)]);
 
-    expect(alert.detail).toContain('transaction');
+    expect(alert.detail).toContain('service-a');
     expect(alert.detail).toContain('↓3');
-    expect(alert.detail).toContain('genie-fe');
+    expect(alert.detail).toContain('service-c');
     expect(alert.detail).toContain('↓8');
   });
 
@@ -79,7 +79,7 @@ describe('renderModalAlert', () => {
   });
 
   it('uses the singular form for one commit', () => {
-    expect(renderModalAlert([behind('profile', 1)]).message).toContain('1 commit behind');
+    expect(renderModalAlert([behind('service-b', 1)]).message).toContain('1 commit behind');
   });
 
   it('caps the detail list so a dozen stale repos cannot overflow the dialog', () => {

@@ -43,9 +43,9 @@ describe('renderBar', () => {
   });
 
   it('names the stale repos in the tooltip', () => {
-    const view = renderBar([status({ name: 'transaction', state: 'behind', behind: 3 })]);
+    const view = renderBar([status({ name: 'service-a', state: 'behind', behind: 3 })]);
 
-    expect(view.tooltip).toContain('transaction');
+    expect(view.tooltip).toContain('service-a');
     expect(view.tooltip).toContain('↓3');
   });
 

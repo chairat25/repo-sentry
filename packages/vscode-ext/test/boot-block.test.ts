@@ -10,19 +10,19 @@ function blocked(name: string, behind = 3, at: string = new Date(NOW).toISOStrin
 
 describe('renderBootBlockMessage', () => {
   it('names the service, the branch, and the count', () => {
-    const message = renderBootBlockMessage(blocked('authentication', 3));
+    const message = renderBootBlockMessage(blocked('service-e', 3));
 
-    expect(message).toContain('authentication');
+    expect(message).toContain('service-e');
     expect(message).toContain('3 commits behind');
     expect(message).toContain('origin/dev');
   });
 
   it('uses the singular form for one commit', () => {
-    expect(renderBootBlockMessage(blocked('profile', 1))).toContain('1 commit behind');
+    expect(renderBootBlockMessage(blocked('service-b', 1))).toContain('1 commit behind');
   });
 
   it('explains why booting stale is dangerous, not just that it was blocked', () => {
-    const message = renderBootBlockMessage(blocked('transaction', 2));
+    const message = renderBootBlockMessage(blocked('service-a', 2));
 
     expect(message.toLowerCase()).toContain('column');
   });

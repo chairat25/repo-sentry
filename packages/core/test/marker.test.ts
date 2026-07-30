@@ -48,11 +48,11 @@ describe('readBlocked', () => {
 
 describe('blockRepo', () => {
   it('records a blocked repo', async () => {
-    await blockRepo(entry('transaction'), home);
+    await blockRepo(entry('service-a'), home);
 
     const blocked = await readBlocked(home);
     expect(blocked).toHaveLength(1);
-    expect(blocked[0]?.name).toBe('transaction');
+    expect(blocked[0]?.name).toBe('service-a');
     expect(blocked[0]?.behind).toBe(3);
     expect(blocked[0]?.blockedAt).toBeTruthy();
   });

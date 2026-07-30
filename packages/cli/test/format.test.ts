@@ -30,16 +30,16 @@ describe('formatStatusTable', () => {
   });
 
   it('marks a behind repo with a warning glyph and the count', () => {
-    const table = formatStatusTable([status({ name: 'transaction', state: 'behind', behind: 3 })]);
+    const table = formatStatusTable([status({ name: 'service-a', state: 'behind', behind: 3 })]);
 
     expect(table).toContain('⚠');
-    expect(table).toContain('transaction');
+    expect(table).toContain('service-a');
     expect(table).toContain('↓3');
   });
 
   it('shows both counts for a diverged repo', () => {
     const table = formatStatusTable([
-      status({ name: 'migration-etl', state: 'diverged', behind: 4, ahead: 5 }),
+      status({ name: 'service-d', state: 'diverged', behind: 4, ahead: 5 }),
     ]);
 
     expect(table).toContain('↓4 ↑5');
@@ -47,21 +47,21 @@ describe('formatStatusTable', () => {
   });
 
   it('marks a synced repo with a check and no detail', () => {
-    const table = formatStatusTable([status({ name: 'profile', state: 'synced' })]);
+    const table = formatStatusTable([status({ name: 'service-b', state: 'synced' })]);
 
     expect(table).toContain('✓');
     expect(table).not.toContain('↓');
   });
 
   it('shows the ahead count for an ahead-only repo', () => {
-    const table = formatStatusTable([status({ name: 'report', state: 'ahead', ahead: 2 })]);
+    const table = formatStatusTable([status({ name: 'service-e', state: 'ahead', ahead: 2 })]);
 
     expect(table).toContain('↑2');
   });
 
   it('shows only the first line of a multi-line unreachable error', () => {
     const table = formatStatusTable([
-      status({ name: 'pdf-download', state: 'unreachable', error: 'auth failed\nfatal: exiting' }),
+      status({ name: 'service-f', state: 'unreachable', error: 'auth failed\nfatal: exiting' }),
     ]);
 
     expect(table).toContain('unreachable — auth failed');

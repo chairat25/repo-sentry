@@ -150,8 +150,8 @@ describe('formatBlockMessage', () => {
   it('tells the developer to pull before committing', () => {
     const message = formatBlockMessage(
       {
-        path: '/x/transaction',
-        name: 'transaction',
+        path: '/x/service-a',
+        name: 'service-a',
         branch: 'dev',
         ahead: 0,
         behind: 3,
@@ -161,7 +161,7 @@ describe('formatBlockMessage', () => {
       'commit',
     );
 
-    expect(message).toContain('transaction');
+    expect(message).toContain('service-a');
     expect(message).toContain('3 commits behind');
     expect(message).toContain('git pull --rebase');
     expect(message).toContain('git commit --no-verify');
@@ -170,8 +170,8 @@ describe('formatBlockMessage', () => {
   it('warns that the push will be rejected', () => {
     const message = formatBlockMessage(
       {
-        path: '/x/transaction',
-        name: 'transaction',
+        path: '/x/service-a',
+        name: 'service-a',
         branch: 'dev',
         ahead: 1,
         behind: 3,
@@ -188,8 +188,8 @@ describe('formatBlockMessage', () => {
   it('uses the singular form for a single commit', () => {
     const message = formatBlockMessage(
       {
-        path: '/x/profile',
-        name: 'profile',
+        path: '/x/service-b',
+        name: 'service-b',
         branch: 'dev',
         ahead: 0,
         behind: 1,
