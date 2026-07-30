@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1e2a4a"/>
+      <stop offset="100%" stop-color="#0d1428"/>
+    </linearGradient>
+    <linearGradient id="shield" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5ea1ff"/>
+      <stop offset="100%" stop-color="#2f6fe0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="128" height="128" rx="26" fill="url(#bg)"/>
+
+  <!-- shield -->
+  <path d="M64 18
+           L96 30
+           V62
+           C96 86 82 100 64 110
+           C46 100 32 86 32 62
+           V30
+           Z"
+        fill="url(#shield)" stroke="#e8f1ff" stroke-width="3"/>
+
+  <!-- watching eye -->
+  <ellipse cx="64" cy="60" rx="20" ry="13" fill="#0d1428"/>
+  <circle cx="64" cy="60" r="8" fill="#7fd4ff"/>
+  <circle cx="64" cy="60" r="3.2" fill="#0d1428"/>
+
+  <!-- git branch glyph beneath, tying it to "repo" -->
+  <g stroke="#dff0ff" stroke-width="3.4" stroke-linecap="round" fill="none">
+    <line x1="52" y1="82" x2="52" y2="94"/>
+    <line x1="76" y1="82" x2="76" y2="90"/>
+    <path d="M52 82 C52 90 76 90 76 82"/>
+  </g>
+  <circle cx="52" cy="94" r="3.6" fill="#dff0ff"/>
+  <circle cx="76" cy="90" r="3.6" fill="#dff0ff"/>
+  <circle cx="52" cy="80" r="3.6" fill="#dff0ff"/>
+  <circle cx="76" cy="80" r="3.6" fill="#dff0ff"/>
+</svg>

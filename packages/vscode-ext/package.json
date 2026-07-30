@@ -4,6 +4,7 @@
   "description": "Warns when a git repository is behind its remote, before you commit or push.",
   "version": "0.1.0",
   "publisher": "internal",
+  "icon": "images/icon.png",
   "license": "MIT",
   "type": "module",
   "engines": { "vscode": "^1.85.0" },
